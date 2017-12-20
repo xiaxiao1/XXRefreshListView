@@ -1,30 +1,22 @@
 package com.xiaxiao.mylistview_pullrefresh;
 
-import android.animation.ValueAnimator;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.ImageView;
-import android.widget.ListView;
+import android.support.v7.app.AppCompatActivity;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    RefreshListView listView;
+    RefreshListView2 listView;
     MyAdapter myAdapter;
     List<String> datas = new ArrayList<>();
-    RefreshListView.RefreshListener refreshListener;
+    RefreshListView2.RefreshListener refreshListener;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        listView = (RefreshListView) findViewById(R.id.listview);
+        listView = (RefreshListView2) findViewById(R.id.listview);
         for (int i=0;i<40;i++) {
             datas.add(i + " hahahaha");
         }
@@ -33,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
 
         XUtil.l("totalcount:"+listView.getCount()+"  childcount: "+listView.getChildCount());
 
-        refreshListener=new RefreshListView.RefreshListener() {
+        refreshListener=new RefreshListView2.RefreshListener() {
             @Override
             public void onHeaderRefresh() {
                 new Thread(new Runnable() {

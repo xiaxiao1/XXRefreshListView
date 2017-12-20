@@ -40,30 +40,30 @@ public class RefreshListView2 extends ListView {
     int currentTouchHeight;
     public RefreshListView2(Context context) {
         super(context);
-        init();
+        preInit(context);
     }
 
     public RefreshListView2(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
+        preInit(context);
     }
 
     public RefreshListView2(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init();
+        preInit(context);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public RefreshListView2(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
-        init();
+        preInit(context);
     }
 
 
     private void preInit(Context context) {
         this.mContext = context;
         refreshManager = new RefreshManager();
-        iHeaderProxy = new IHeaderProxy(mContext,null);
+        iHeaderProxy = new IHeaderProxy(mContext,new TestHeader());
         init();
     }
 
@@ -154,7 +154,10 @@ public class RefreshListView2 extends ListView {
                 return;
             }
             refreshHeaderView = iHeaderProxy.getHeaderView();
-            iHeaderProxy.init();
+//            iHeaderProxy.init();
+            headerBackAnimation = iHeaderProxy.getBackAnimation();
+            headerRefreshingAnimation = iHeaderProxy.getRefreshingAnimation();
+            headerDismissAnimation = iHeaderProxy.getDismissAnimation();
             afterInitHeader();
             addHeaderView(refreshHeaderView);
         }
@@ -176,7 +179,6 @@ public class RefreshListView2 extends ListView {
                     refreshHeaderView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 }
             });
-            headerBackAnimation = iHeaderProxy.getBackAnimation();
 
         }
 
@@ -195,26 +197,26 @@ public class RefreshListView2 extends ListView {
             if (oneHeaderSession) {
 //                backAnimation(from, 0);
 //                iHeaderProxy.backWhileRealse(currentY,-headerHeight);
-                runHeaderBack(currentY);
+                runHeaderBack(currentY,0);
                 return;
             }
             //未达到刷新界限
             if (refreshHeaderView.getPaddingTop() < 0) {
 //                backAnimation(from, to);
 //                iHeaderProxy.backWhileRealse(currentY,-headerHeight);
-                runHeaderBack(currentY);
+                runHeaderBack(currentY,-headerHeight);
             } else {
                 //达到刷新界限，执行刷新
                 headerRefreshing = true;
-                runHeaderBack(currentY);
+                runHeaderBack(currentY,0);
 //                backAnimation(from, 0);
 //                iHeaderProxy.backWhileRealse(currentY,-headerHeight);
             }
 
         }
 
-        public void runHeaderBack(int currentY) {
-            iHeaderProxy.runBackAnim(currentY,-headerHeight);
+        public void runHeaderBack(int currentY,int end) {
+            iHeaderProxy.runBackAnim(currentY,end);
             animWatcher.start();
         }
 

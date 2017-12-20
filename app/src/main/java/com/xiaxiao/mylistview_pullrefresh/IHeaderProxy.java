@@ -20,9 +20,7 @@ public class IHeaderProxy  {
     public IHeaderProxy(Context context, IHeader iHeaderView) {
         this.mContext = context;
         this.iHeader = iHeaderView;
-        headerBackAnimation = this.iHeader.getBackAnimation(mCurrentY, endY);
-        headerRefreshingAnimation = this.iHeader.getRefreshingAnimation();
-        headerDismissAnimation = this.iHeader.getDismissAnimation(mCurrentY, endY);
+        init();
     }
 
     /*public void setIHeader(IHeader iHeader) {
@@ -32,6 +30,10 @@ public class IHeaderProxy  {
     public void setRange(int mCurrentY, int endY) {
         this.mCurrentY = mCurrentY;
         this.endY = endY;
+
+        headerBackAnimation = this.iHeader.getBackAnimation(mCurrentY, endY);
+        headerRefreshingAnimation = this.iHeader.getRefreshingAnimation();
+        headerDismissAnimation = this.iHeader.getDismissAnimation(mCurrentY, endY);
     }
 
     public boolean isExist() {
@@ -49,8 +51,8 @@ public class IHeaderProxy  {
     }
 
     public void runDismissAnim() {
-        if (headerRefreshingAnimation!=null) {
-            headerRefreshingAnimation.cancel();
+        if (this.iHeader.getRefreshingAnimation()!=null) {
+            this.iHeader.getRefreshingAnimation().cancel();
         }
         this.iHeader.getDismissAnimation(mCurrentY,0).start();
     }
@@ -65,7 +67,7 @@ public class IHeaderProxy  {
         return this.headerDismissAnimation;
     }
 
-    public void init() {
+    private void init() {
         int id = this.iHeader.getViewId();
         View v = View.inflate(mContext, id, null);
         this.iHeader.init(v);
