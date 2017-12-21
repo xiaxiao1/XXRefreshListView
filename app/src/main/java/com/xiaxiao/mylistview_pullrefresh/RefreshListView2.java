@@ -22,7 +22,7 @@ public class RefreshListView2 extends ListView {
 
     Context mContext;
     RefreshManager refreshManager;
-    IHeaderProxy iHeaderProxy;
+
     //头部刷新view
     View refreshHeaderView;
     //头部高度
@@ -36,7 +36,7 @@ public class RefreshListView2 extends ListView {
     //刷新回调方法
     RefreshListener refreshListener;
     //头部刷新时的动画
-    Animation onHeaderRefreshAnimation;
+    Animation referenceAnim;
     int currentTouchHeight;
     public RefreshListView2(Context context) {
         super(context);
@@ -62,16 +62,11 @@ public class RefreshListView2 extends ListView {
 
     private void preInit(Context context) {
         this.mContext = context;
-        refreshManager = new RefreshManager();
-        iHeaderProxy = new IHeaderProxy(mContext,new TestHeader());
+        refreshManager = new RefreshManager(context);
         init();
     }
 
     public void init() {
-
-//        initHeaderView();
-        refreshManager.initHeaderView();
-//        addHeaderView(headerView);
         this.setOnTouchListener(new OnTouchListener() {
             int action;
             int downY=0;
@@ -145,10 +140,23 @@ public class RefreshListView2 extends ListView {
     }
 
     public class RefreshManager{
+        IHeaderProxy iHeaderProxy;
+        ValueAnimator backWithNothingAnim;
+        ValueAnimator backForRefreshAnim;
         Animation headerBackAnimation;
         Animation headerRefreshingAnimation;
         Animation headerDismissAnimation;
         ValueAnimator animWatcher;
+        int mCurrentY;
+        int mEndY;
+        int mCurrentY4refresh;
+//        int mEndY;
+
+        public RefreshManager(Context context) {
+            iHeaderProxy = new IHeaderProxy(context,new TestHeader(context));
+            initAnims();
+            initHeaderView();
+        }
         public void initHeaderView() {
             if (!iHeaderProxy.isExist()) {
                 return;
@@ -182,8 +190,8 @@ public class RefreshListView2 extends ListView {
 
         }
 
-        public void headerMove(int from, int to) {
-            iHeaderProxy.moveAsFinger(headerHeight,from,to);
+        public void headerMove(int current, int end) {
+            iHeaderProxy.moveAsFinger(headerHeight,current,end);
         }
 
         /**
@@ -192,57 +200,87 @@ public class RefreshListView2 extends ListView {
          */
         public void headerBack(int currentY) {
             iHeaderProxy.setRange(currentY,-headerHeight);
-            animWatcher=wrapBackAnimation(iHeaderProxy.getBackAnimation(),currentY,-headerHeight);
+            if (refreshHeaderView.getPaddingTop()==-headerHeight) {
+                return;
+            }
             //这一个if加的漂亮，这是在头部正在刷新的时候再进行一些上啦下啦的操作时，就只是在padding上改变一下，不执行其他逻辑了。
             if (oneHeaderSession) {
-//                backAnimation(from, 0);
-//                iHeaderProxy.backWhileRealse(currentY,-headerHeight);
-                runHeaderBack(currentY,0);
+                runHeaderBackWithNothing(true,iHeaderProxy.getBackAnimation(),currentY,0);
                 return;
             }
             //未达到刷新界限
             if (refreshHeaderView.getPaddingTop() < 0) {
-//                backAnimation(from, to);
-//                iHeaderProxy.backWhileRealse(currentY,-headerHeight);
-                runHeaderBack(currentY,-headerHeight);
+                runHeaderBackWithNothing(false,iHeaderProxy.getDismissAnimation(),currentY,-headerHeight);
             } else {
                 //达到刷新界限，执行刷新
                 headerRefreshing = true;
-                runHeaderBack(currentY,0);
-//                backAnimation(from, 0);
-//                iHeaderProxy.backWhileRealse(currentY,-headerHeight);
+                runHeaderBackForRefresh(iHeaderProxy.getBackAnimation(),currentY);
             }
 
         }
 
-        public void runHeaderBack(int currentY,int end) {
-            iHeaderProxy.runBackAnim(currentY,end);
-            animWatcher.start();
+        public void runHeaderBackForRefresh(Animation referenceAnim,int currentY) {
+            if (animWatcher!=null&&animWatcher.isRunning()) {
+                animWatcher.cancel();
+            }
+            this.mCurrentY4refresh = currentY;
+            iHeaderProxy.runBackAnim(currentY,0);
+            backForRefreshAnim.setDuration(referenceAnim.getDuration());
+            backForRefreshAnim.start();
+            animWatcher = backForRefreshAnim;
+        }
+        public void runHeaderBackWithNothing(boolean isBack,Animation referenceAnim,int currentY,int end) {
+            if (animWatcher!=null&&animWatcher.isRunning()) {
+                animWatcher.cancel();
+            }
+            this.mCurrentY = currentY;
+            this.mEndY = end;
+            if (isBack) {
+                iHeaderProxy.runBackAnim(currentY, end);
+            } else {
+                iHeaderProxy.runDismissAnim();
+            }
+            backWithNothingAnim.setDuration(referenceAnim.getDuration());
+            backWithNothingAnim.start();
+            animWatcher = backWithNothingAnim;
         }
 
         /**
          * 返回时动画
-         * @param from
-         * @param to
          */
-        public ValueAnimator wrapBackAnimation(Animation backAnim ,int from, final int to) {
-            ValueAnimator valueAnimator = ValueAnimator.ofInt(from, to);
-            valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                @Override
-                public void onAnimationUpdate(ValueAnimator animation) {
-                    refreshHeaderView.setPadding(0,(int)animation.getAnimatedValue(),0,0);
-                    if (headerRefreshing &&(int)animation.getAnimatedValue()==to) {
-                        headerRefreshing =false;
+        public ValueAnimator wrapBackAnimation(Animation backAnim ) {
+            if (animWatcher!=null) {
+                animWatcher.cancel();
+            }
+            if (animWatcher==null) {
+                animWatcher = ValueAnimator.ofInt(mCurrentY,mEndY);
+                animWatcher.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                    @Override
+                    public void onAnimationUpdate(ValueAnimator animation) {
+                        refreshHeaderView.setPadding(0,(int)animation.getAnimatedValue(),0,0);
+                        if (headerRefreshing &&(int)animation.getAnimatedValue()==mEndY) {
+                            headerRefreshing =false;
 //                        headerRefreshingAnimation();
-                        runHeadRefreshingAnimation();
-                        if (refreshListener!=null) {
-                            refreshListener.onHeaderRefresh();
+                            runHeadRefreshingAnimation();
+                            if (refreshListener!=null) {
+                                refreshListener.onHeaderRefresh();
+                            }
                         }
                     }
-                }
-            });
-            valueAnimator.setDuration(backAnim.getDuration());
-            return valueAnimator;
+                });
+            }
+
+            animWatcher.setDuration(backAnim.getDuration());
+            return animWatcher;
+        }
+
+
+        public void clearAnim() {
+            iHeaderProxy.clear();
+            if (animWatcher != null) {
+                animWatcher.cancel();
+                animWatcher = null;
+            }
         }
 
         public void runHeadRefreshingAnimation() {
@@ -255,9 +293,37 @@ public class RefreshListView2 extends ListView {
 
         public void stopHeadRefresh() {
             oneHeaderSession=false;
-            iHeaderProxy.runDismissAnim();
+            runHeaderBackWithNothing(false,iHeaderProxy.getDismissAnimation(),0,-headerHeight);
         }
+        public void initAnims() {
+            backWithNothingAnim = ValueAnimator.ofInt(mCurrentY,mEndY);
+            backWithNothingAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    refreshHeaderView.setPadding(0,(int)animation.getAnimatedValue(),0,0);
+                }
+            });
+
+            backForRefreshAnim = ValueAnimator.ofInt(mCurrentY4refresh,0);
+            backForRefreshAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator animation) {
+                    refreshHeaderView.setPadding(0,(int)animation.getAnimatedValue(),0,0);
+                    if (headerRefreshing &&(int)animation.getAnimatedValue()==0) {
+                        headerRefreshing =false;
+//                        headerRefreshingAnimation();
+                        runHeadRefreshingAnimation();
+                        if (refreshListener!=null) {
+                            refreshListener.onHeaderRefresh();
+                        }
+                    }
+                }
+            });
+        }
+
     }
+
+
 
 
 }

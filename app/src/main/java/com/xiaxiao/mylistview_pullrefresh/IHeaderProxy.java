@@ -21,6 +21,7 @@ public class IHeaderProxy  {
         this.mContext = context;
         this.iHeader = iHeaderView;
         init();
+
     }
 
     /*public void setIHeader(IHeader iHeader) {
@@ -30,31 +31,38 @@ public class IHeaderProxy  {
     public void setRange(int mCurrentY, int endY) {
         this.mCurrentY = mCurrentY;
         this.endY = endY;
-
-        headerBackAnimation = this.iHeader.getBackAnimation(mCurrentY, endY);
-        headerRefreshingAnimation = this.iHeader.getRefreshingAnimation();
-        headerDismissAnimation = this.iHeader.getDismissAnimation(mCurrentY, endY);
     }
 
     public boolean isExist() {
         return this.iHeader != null;
     }
-    public void moveAsFinger(int reference, int from, int to) {
-        this.iHeader.moveAsFinger(reference, from, to);
+    public void moveAsFinger(int reference, int current, int end) {
+        this.mCurrentY = current;
+        this.endY = end;
+        this.iHeader.moveAsFinger(reference, this.mCurrentY,this.endY);
     }
 
-    public void runBackAnim(int from, int to) {
-        this.iHeader.getBackAnimation(from, to).start();
+    public void runBackAnim(int current, int end) {
+        this.mCurrentY = current;
+        this.endY = end;
+        this.headerBackAnimation.start();
+        this.iHeader.onBackAnimation();
+
     }
     public void runRefreshingAnim() {
-        this.iHeader.getRefreshingAnimation().start();
+        if (this.headerBackAnimation!=null) {
+            this.headerBackAnimation.cancel();
+        }
+        this.headerRefreshingAnimation.start();
+        this.iHeader.onRefreshAnimation();
     }
 
     public void runDismissAnim() {
-        if (this.iHeader.getRefreshingAnimation()!=null) {
-            this.iHeader.getRefreshingAnimation().cancel();
+        if (this.headerRefreshingAnimation!=null) {
+            this.headerRefreshingAnimation.cancel();
         }
-        this.iHeader.getDismissAnimation(mCurrentY,0).start();
+        this.headerDismissAnimation.start();
+        this.iHeader.onDismissAnimation();
     }
 
     public Animation getBackAnimation(){
@@ -71,9 +79,16 @@ public class IHeaderProxy  {
         int id = this.iHeader.getViewId();
         View v = View.inflate(mContext, id, null);
         this.iHeader.init(v);
+
+        headerBackAnimation = this.iHeader.getBackAnimation(this.mCurrentY,this.endY);
+        headerRefreshingAnimation = this.iHeader.getRefreshingAnimation();
+        headerDismissAnimation = this.iHeader.getDismissAnimation(this.mCurrentY,this.endY);
     }
 
     public View getHeaderView() {
         return this.iHeader.getHeaderView();
+    }
+    public void clear() {
+
     }
 }

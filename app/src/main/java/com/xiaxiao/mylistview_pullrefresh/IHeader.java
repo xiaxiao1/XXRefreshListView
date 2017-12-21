@@ -12,10 +12,15 @@ public interface IHeader {
      void init(View view);
 
     //随手指在上下滑动中
-     void moveAsFinger(int reference,int from ,int to);
-     Animation getBackAnimation(int from, int to);
+     void moveAsFinger(int reference,int current ,int end);
+     Animation getBackAnimation(int current ,int end);
      Animation getRefreshingAnimation();
-     Animation getDismissAnimation(int from, int to);
+     Animation getDismissAnimation(int current ,int end);
 
      View getHeaderView();
+
+    void onMoveAsFinger();
+    void onBackAnimation();
+    void onRefreshAnimation();
+    void onDismissAnimation();
 }
